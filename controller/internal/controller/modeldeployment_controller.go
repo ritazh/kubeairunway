@@ -189,12 +189,13 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				// Non-fatal: don't block overall reconciliation
 			}
 		}
-	} else if md.Status.Gateway != nil {
-		// Deployment is no longer Running but gateway resources exist — clean up
-		if err := r.cleanupGatewayResources(ctx, &md); err != nil {
-			logger.Error(err, "Failed to clean up gateway resources after phase change")
-		}
 	}
+	// Note: we intentionally do NOT clean up gateway resources when phase is non-Running
+	// (e.g. Deploying, Failed, Pending). Those are transient states and immediate cleanup
+	// would delete the EPP ServiceAccount while its pod is still running, invalidating
+	// the projected token and causing 401 Unauthorized crash loops.
+	// All gateway resources have ownerReferences on the ModelDeployment, so Kubernetes
+	// garbage collection handles cleanup when the ModelDeployment is deleted.
 
 	logger.Info("Reconciliation complete", "name", md.Name, "phase", md.Status.Phase, "provider", md.Status.Provider)
 
