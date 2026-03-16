@@ -69,6 +69,11 @@ func (in *EngineSpec) DeepCopyInto(out *EngineSpec) {
 		*out = new(int32)
 		**out = **in
 	}
+	if in.TensorParallelSize != nil {
+		in, out := &in.TensorParallelSize, &out.TensorParallelSize
+		*out = new(int32)
+		**out = **in
+	}
 	if in.Args != nil {
 		in, out := &in.Args, &out.Args
 		*out = make(map[string]string, len(*in))

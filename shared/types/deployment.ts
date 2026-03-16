@@ -46,6 +46,7 @@ export interface DeploymentConfig {
   replicas: number;
   hfTokenSecret?: string;
   contextLength?: number;
+  tensorParallelSize?: number;
   enforceEager: boolean;
   enablePrefixCaching: boolean;
   trustRemoteCode: boolean;
@@ -85,6 +86,7 @@ export interface ProviderSpec {
 export interface EngineSpec {
   type: EngineType;
   contextLength?: number;
+  tensorParallelSize?: number;
   trustRemoteCode?: boolean;
   args?: Record<string, unknown>;
 }
@@ -276,6 +278,7 @@ export function toModelDeploymentSpec(config: DeploymentConfig): ModelDeployment
     engine: {
       type: config.engine as EngineType,
       contextLength: config.contextLength || config.maxModelLen,
+      tensorParallelSize: config.tensorParallelSize,
       trustRemoteCode: config.trustRemoteCode,
       args: config.engineArgs,
     },
@@ -284,11 +287,24 @@ export function toModelDeploymentSpec(config: DeploymentConfig): ModelDeployment
     },
   };
 
-  if (config.provider || config.providerOverrides) {
-    spec.provider = {
-      ...(config.provider && { name: config.provider }),
-      ...(config.providerOverrides && { overrides: config.providerOverrides }),
-    };
+  if (config.provider) {
+    spec.provider = { name: config.provider };
+
+    // Dynamo-specific overrides
+    if (config.provider === 'dynamo') {
+      const dynamoOverrides: Record<string, unknown> = {};
+      if (config.routerMode && config.routerMode !== 'none') {
+        dynamoOverrides['routerMode'] = config.routerMode;
+      }
+      if (config.enforceEager) {
+        dynamoOverrides['enforceEager'] = true;
+      }
+      if (Object.keys(dynamoOverrides).length > 0) {
+        spec.provider.overrides = dynamoOverrides;
+      }
+    }
+  } else if (config.providerOverrides) {
+    spec.provider = { overrides: config.providerOverrides };
   }
 
   if (config.mode === 'aggregated') {

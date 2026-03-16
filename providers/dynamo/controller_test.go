@@ -199,7 +199,7 @@ func TestSetCondition(t *testing.T) {
 }
 
 func TestNewDynamoProviderReconciler(t *testing.T) {
-	r := NewDynamoProviderReconciler(nil, nil, "")
+	r := NewDynamoProviderReconciler(nil, nil, "", "", "", "")
 	if r == nil {
 		t.Fatal("expected non-nil reconciler")
 	}
@@ -223,7 +223,7 @@ func TestControllerConstants(t *testing.T) {
 func TestReconcileNotFound(t *testing.T) {
 	scheme := newScheme()
 	c := fake.NewClientBuilder().WithScheme(scheme).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	result, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: "missing", Namespace: "default"},
@@ -242,7 +242,7 @@ func TestReconcileWrongProvider(t *testing.T) {
 	md.Status.Provider.Name = "other"
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(md).WithStatusSubresource(md).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	result, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: "test", Namespace: "default"},
@@ -261,7 +261,7 @@ func TestReconcilePaused(t *testing.T) {
 	md.Annotations = map[string]string{"kubeairunway.ai/reconcile-paused": "true"}
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(md).WithStatusSubresource(md).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	result, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: "test", Namespace: "default"},
@@ -279,7 +279,7 @@ func TestReconcileAddsFinalizer(t *testing.T) {
 	md := newMDForController("test", "default")
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(md).WithStatusSubresource(md).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	result, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: "test", Namespace: "default"},
@@ -305,7 +305,7 @@ func TestReconcileIncompatibleEngine(t *testing.T) {
 	controllerutil.AddFinalizer(md, FinalizerName)
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(md).WithStatusSubresource(md).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	_, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: "test", Namespace: "default"},
@@ -327,7 +327,7 @@ func TestReconcileNilProvider(t *testing.T) {
 	md.Status.Provider = nil
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(md).WithStatusSubresource(md).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	result, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: "test", Namespace: "default"},
@@ -346,7 +346,7 @@ func TestReconcileSuccessfulCreate(t *testing.T) {
 	controllerutil.AddFinalizer(md, FinalizerName)
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(md).WithStatusSubresource(md).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	result, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: "test", Namespace: "default"},
@@ -374,7 +374,7 @@ func TestReconcileHandleDeletion(t *testing.T) {
 	md.DeletionTimestamp = &now
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(md).WithStatusSubresource(md).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	_, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: "test", Namespace: "default"},
@@ -398,7 +398,7 @@ func TestReconcileDeletionNoFinalizer(t *testing.T) {
 	md.Finalizers = []string{"other-finalizer"}
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(md).WithStatusSubresource(md).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	result, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: "test", Namespace: "default"},
@@ -430,7 +430,7 @@ func TestReconcileDeletionWithUpstreamResource(t *testing.T) {
 	})
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(md, dgd).WithStatusSubresource(md).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	result, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: "test", Namespace: "default"},
@@ -446,7 +446,7 @@ func TestReconcileDeletionWithUpstreamResource(t *testing.T) {
 func TestCreateOrUpdateResourceNew(t *testing.T) {
 	scheme := newScheme()
 	c := fake.NewClientBuilder().WithScheme(scheme).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	md := &kubeairunwayv1alpha1.ModelDeployment{}
 	md.Name = "test"
@@ -480,7 +480,7 @@ func TestCreateOrUpdateResourceUpdate(t *testing.T) {
 	existing.Object["spec"] = map[string]interface{}{"backendFramework": "vllm"}
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(existing).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	md := &kubeairunwayv1alpha1.ModelDeployment{}
 	md.Name = "test"
@@ -515,7 +515,7 @@ func TestCreateOrUpdateResourceNoChange(t *testing.T) {
 	existing.Object["spec"] = map[string]interface{}{"backendFramework": "vllm"}
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(existing).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	md := &kubeairunwayv1alpha1.ModelDeployment{}
 	md.Name = "test"
@@ -537,7 +537,7 @@ func TestCreateOrUpdateResourceNoChange(t *testing.T) {
 func TestSyncStatusNotFound(t *testing.T) {
 	scheme := newScheme()
 	c := fake.NewClientBuilder().WithScheme(scheme).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	md := &kubeairunwayv1alpha1.ModelDeployment{}
 	desired := &unstructured.Unstructured{}
@@ -561,7 +561,7 @@ func TestSyncStatusRunning(t *testing.T) {
 	dgd.Object["status"] = map[string]interface{}{"state": "successful"}
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(dgd).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	md := &kubeairunwayv1alpha1.ModelDeployment{}
 	desired := &unstructured.Unstructured{}
@@ -588,7 +588,7 @@ func TestSyncStatusFailed(t *testing.T) {
 	dgd.Object["status"] = map[string]interface{}{"state": "failed", "message": "oom"}
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(dgd).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	md := &kubeairunwayv1alpha1.ModelDeployment{}
 	desired := &unstructured.Unstructured{}
@@ -615,7 +615,7 @@ func TestSyncStatusDeploying(t *testing.T) {
 	dgd.Object["status"] = map[string]interface{}{"state": "deploying"}
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(dgd).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	md := &kubeairunwayv1alpha1.ModelDeployment{}
 	desired := &unstructured.Unstructured{}
@@ -673,7 +673,7 @@ func TestReconcilePVCNotBound(t *testing.T) {
 	controllerutil.AddFinalizer(md, FinalizerName)
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(md).WithStatusSubresource(md).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	result, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: "test", Namespace: "default"},
@@ -742,7 +742,7 @@ func TestReconcileDownloadNotComplete(t *testing.T) {
 	}
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(md, pvc).WithStatusSubresource(md, pvc).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	result, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: "test", Namespace: "default"},
@@ -824,7 +824,7 @@ func TestReconcileFullPipeline(t *testing.T) {
 	}
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(md, pvc, job).WithStatusSubresource(md, pvc, job).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	result, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: "test", Namespace: "default"},
@@ -861,7 +861,7 @@ func TestReconcileNoStorageSkipsPhases(t *testing.T) {
 	controllerutil.AddFinalizer(md, FinalizerName)
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(md).WithStatusSubresource(md).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	result, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: "test", Namespace: "default"},
@@ -932,7 +932,7 @@ func TestReconcileDeletionCleansUpResources(t *testing.T) {
 	}
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(md, pvc, job).WithStatusSubresource(md).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	_, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: "test", Namespace: "default"},
@@ -999,7 +999,7 @@ func TestReconcileDeletionRetriesOnCleanupFailure(t *testing.T) {
 		WithStatusSubresource(md).
 		WithInterceptorFuncs(interceptorFuncs).
 		Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	result, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: "test", Namespace: "default"},
@@ -1081,7 +1081,7 @@ func TestReconcileDeletionWithDGDDelaysCleanup(t *testing.T) {
 	}
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(md, dgd, pvc, job).WithStatusSubresource(md).Build()
-	r := NewDynamoProviderReconciler(c, scheme, "")
+	r := NewDynamoProviderReconciler(c, scheme, "", "", "", "")
 
 	// --- First reconciliation: DGD exists, should delete DGD but NOT PVC/Job ---
 	result, err := r.Reconcile(context.Background(), ctrl.Request{

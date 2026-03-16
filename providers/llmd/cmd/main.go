@@ -55,6 +55,7 @@ func main() {
 	var probeAddr string
 	var secureMetrics bool
 	var enableHTTP2 bool
+	var vllmImage string
 	var tlsOpts []func(*tls.Config)
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8443", "The address the metrics endpoint binds to.")
@@ -68,6 +69,8 @@ func main() {
 	flag.StringVar(&metricsCertKey, "metrics-cert-key", "tls.key", "The name of the metrics server key file.")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics server.")
+	flag.StringVar(&vllmImage, "vllm-image", llmd.DefaultVLLMImage,
+		"Container image for vLLM inference pods.")
 
 	opts := zap.Options{Development: true}
 	opts.BindFlags(flag.CommandLine)
@@ -109,7 +112,7 @@ func main() {
 	}
 
 	// Set up the llm-d provider reconciler
-	reconciler := llmd.NewLLMDProviderReconciler(mgr.GetClient(), mgr.GetScheme())
+	reconciler := llmd.NewLLMDProviderReconciler(mgr.GetClient(), mgr.GetScheme(), vllmImage)
 	if err := reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LLMDProvider")
 		os.Exit(1)

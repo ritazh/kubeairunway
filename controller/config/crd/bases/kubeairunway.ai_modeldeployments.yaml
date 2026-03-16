@@ -75,6 +75,13 @@ spec:
                       Maps to engine-specific flags (--max-model-len for vllm, etc.)
                     format: int32
                     type: integer
+                  tensorParallelSize:
+                    description: |-
+                      tensorParallelSize is the tensor parallelism degree (number of GPUs to split the model across)
+                      Maps to --tensor-parallel-size for vllm and sglang engines
+                    format: int32
+                    minimum: 1
+                    type: integer
                   trustRemoteCode:
                     default: false
                     description: |-

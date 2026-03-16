@@ -266,7 +266,7 @@ export function DeploymentForm({ model, detailedCapacity, autoscaler, runtimes }
     routerMode: 'none',
     replicas: 1,
     hfTokenSecret: model.gated ? (import.meta.env.VITE_DEFAULT_HF_SECRET || 'hf-token-secret') : '',
-    enforceEager: true,
+    enforceEager: false,
     enablePrefixCaching: false,
     trustRemoteCode: false,
     // Disaggregated mode defaults
@@ -1591,7 +1591,7 @@ export function DeploymentForm({ model, detailedCapacity, autoscaler, runtimes }
                   <div className="space-y-0.5">
                     <Label>Enforce Eager Mode</Label>
                     <p className="text-xs text-muted-foreground">
-                      Use eager mode for faster startup
+                      Disable CUDA graph capture and Triton compilation. Required for GPUs with architectures not yet supported by the bundled Triton (e.g. GH200/sm_121a on DGX Spark).
                     </p>
                   </div>
                   <Switch
@@ -1646,6 +1646,27 @@ export function DeploymentForm({ model, detailedCapacity, autoscaler, runtimes }
                 }}
               />
             </div>
+
+            {/* Tensor Parallel Size - Dynamo only, vLLM/SGLang engines */}
+            {selectedRuntime === 'dynamo' && (config.engine === 'vllm' || config.engine === 'sglang') && (
+              <div className="space-y-2">
+                <Label htmlFor="tensorParallelSize">Tensor Parallel Size (optional)</Label>
+                <Input
+                  id="tensorParallelSize"
+                  type="number"
+                  min={1}
+                  placeholder="Default (1)"
+                  value={config.tensorParallelSize || ''}
+                  onChange={(e) => {
+                    const value = e.target.value ? parseInt(e.target.value) : undefined
+                    updateConfig('tensorParallelSize', value)
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Number of GPUs to split the model across. Use &gt; 1 for multi-GPU tensor parallelism.
+                </p>
+              </div>
+            )}
             </div>
           </div>
         </div>

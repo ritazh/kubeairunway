@@ -79,6 +79,7 @@ const createDeploymentSchema = z.object({
   replicas: z.number().int().min(0).optional().default(1),
   hfTokenSecret: z.string().optional().default(''),
   contextLength: z.number().int().positive().optional(),
+  tensorParallelSize: z.number().int().min(1).optional(),
   enforceEager: z.boolean().optional().default(false),
   enablePrefixCaching: z.boolean().optional().default(false),
   trustRemoteCode: z.boolean().optional().default(false),

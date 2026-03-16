@@ -116,9 +116,9 @@ controller-build:
 	cd controller && go build -o bin/manager ./cmd/main.go
 	@echo "✅ Controller binary built: controller/bin/manager"
 
-# Build controller Docker image
+# Build controller Docker image (multi-arch: amd64 + arm64)
 controller-docker-build:
-	docker build -f controller/Dockerfile -t $(CONTROLLER_IMG) .
+	docker build -f controller/Dockerfile -t $(CONTROLLER_IMG) . --platform linux/amd64,linux/arm64 --push
 	@echo "✅ Controller image built: $(CONTROLLER_IMG)"
 
 # Generate CRD manifests and deep copy code

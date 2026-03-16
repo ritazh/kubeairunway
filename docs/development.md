@@ -436,7 +436,7 @@ kubectl create secret generic hf-token-secret \
 ### Install NVIDIA Dynamo (via Helm)
 ```bash
 export NAMESPACE=dynamo-system
-export RELEASE_VERSION=0.7.1
+export RELEASE_VERSION=0.9.1
 
 # Install CRDs
 helm fetch https://helm.ngc.nvidia.com/nvidia/ai-dynamo/charts/dynamo-crds-${RELEASE_VERSION}.tgz
@@ -444,7 +444,12 @@ helm install dynamo-crds dynamo-crds-${RELEASE_VERSION}.tgz --namespace default
 
 # Install Platform
 helm fetch https://helm.ngc.nvidia.com/nvidia/ai-dynamo/charts/dynamo-platform-${RELEASE_VERSION}.tgz
-helm install dynamo-platform dynamo-platform-${RELEASE_VERSION}.tgz --namespace ${NAMESPACE} --create-namespace
+helm install dynamo-platform dynamo-platform-${RELEASE_VERSION}.tgz --namespace ${NAMESPACE} --create-namespace --set "grove.enabled=true" --set "kai-scheduler.enabled=true"
+
+# Fix kube-rbac-proxy image (gcr.io is deprecated; patch to registry.k8s.io)
+kubectl set image deployment/dynamo-platform-dynamo-operator-controller-manager \
+  kube-rbac-proxy=registry.k8s.io/kubebuilder/kube-rbac-proxy:v0.15.0 \
+  -n ${NAMESPACE}
 ```
 
 ## Adding a New Provider

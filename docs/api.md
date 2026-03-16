@@ -356,8 +356,8 @@ Get manual installation commands for a provider.
 ```json
 {
   "commands": [
-    "helm fetch https://helm.ngc.nvidia.com/nvidia/ai-dynamo/charts/dynamo-crds-0.7.1.tgz && helm install dynamo-crds dynamo-crds-0.7.1.tgz --namespace default",
-    "helm fetch https://helm.ngc.nvidia.com/nvidia/ai-dynamo/charts/dynamo-platform-0.7.1.tgz && helm install dynamo-platform dynamo-platform-0.7.1.tgz --namespace dynamo-system --create-namespace"
+    "helm fetch https://helm.ngc.nvidia.com/nvidia/ai-dynamo/charts/dynamo-crds-0.9.1.tgz && helm install dynamo-crds dynamo-crds-0.9.1.tgz --namespace default",
+    "helm fetch https://helm.ngc.nvidia.com/nvidia/ai-dynamo/charts/dynamo-platform-0.9.1.tgz && helm install dynamo-platform dynamo-platform-0.9.1.tgz --namespace dynamo-system --create-namespace --set grove.enabled=true --set kai-scheduler.enabled=true"
   ]
 }
 ```

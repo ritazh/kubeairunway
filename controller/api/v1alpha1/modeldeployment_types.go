@@ -209,6 +209,12 @@ type EngineSpec struct {
 	// +optional
 	TrustRemoteCode bool `json:"trustRemoteCode,omitempty"`
 
+	// tensorParallelSize is the tensor parallelism degree (number of GPUs to split the model across)
+	// Maps to --tensor-parallel-size for vllm and sglang engines
+	// +kubebuilder:validation:Minimum=1
+	// +optional
+	TensorParallelSize *int32 `json:"tensorParallelSize,omitempty"`
+
 	// args contains engine-specific arguments
 	// These are passed directly to the engine and vary by type
 	// +optional

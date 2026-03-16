@@ -57,6 +57,9 @@ func main() {
 	var secureMetrics bool
 	var enableHTTP2 bool
 	var downloadJobImage string
+	var vllmImage string
+	var sglangImage string
+	var trtllmImage string
 	var tlsOpts []func(*tls.Config)
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8443", "The address the metrics endpoint binds to.")
@@ -72,6 +75,12 @@ func main() {
 		"If set, HTTP/2 will be enabled for the metrics server.")
 	flag.StringVar(&downloadJobImage, "download-job-image", storage.DefaultDownloadJobImage,
 		"Container image for model download jobs.")
+	flag.StringVar(&vllmImage, "vllm-image", dynamo.DefaultVLLMImage,
+		"Container image for vLLM inference pods.")
+	flag.StringVar(&sglangImage, "sglang-image", dynamo.DefaultSGLangImage,
+		"Container image for SGLang inference pods.")
+	flag.StringVar(&trtllmImage, "trtllm-image", dynamo.DefaultTRTLLMImage,
+		"Container image for TensorRT-LLM inference pods.")
 
 	opts := zap.Options{Development: true}
 	opts.BindFlags(flag.CommandLine)
@@ -113,7 +122,7 @@ func main() {
 	}
 
 	// Set up the Dynamo provider reconciler
-	reconciler := dynamo.NewDynamoProviderReconciler(mgr.GetClient(), mgr.GetScheme(), downloadJobImage)
+	reconciler := dynamo.NewDynamoProviderReconciler(mgr.GetClient(), mgr.GetScheme(), downloadJobImage, vllmImage, sglangImage, trtllmImage)
 	if err := reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DynamoProvider")
 		os.Exit(1)

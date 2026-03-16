@@ -103,12 +103,12 @@ func GetProviderConfigSpec() kubeairunwayv1alpha1.InferenceProviderConfigSpec {
 			HelmCharts: []kubeairunwayv1alpha1.HelmChart{
 				{
 					Name:      "dynamo-crds",
-					Chart:     "https://helm.ngc.nvidia.com/nvidia/ai-dynamo/charts/dynamo-crds-0.7.1.tgz",
+					Chart:     "https://helm.ngc.nvidia.com/nvidia/ai-dynamo/charts/dynamo-crds-0.9.1.tgz",
 					Namespace: "default",
 				},
 				{
 					Name:            "dynamo-platform",
-					Chart:           "https://helm.ngc.nvidia.com/nvidia/ai-dynamo/charts/dynamo-platform-0.7.1.tgz",
+					Chart:           "https://helm.ngc.nvidia.com/nvidia/ai-dynamo/charts/dynamo-platform-0.9.1.tgz",
 					Namespace:       "dynamo-system",
 					CreateNamespace: true,
 				},
@@ -116,13 +116,18 @@ func GetProviderConfigSpec() kubeairunwayv1alpha1.InferenceProviderConfigSpec {
 			Steps: []kubeairunwayv1alpha1.InstallationStep{
 				{
 					Title:       "Install Dynamo CRDs",
-					Command:     "helm fetch https://helm.ngc.nvidia.com/nvidia/ai-dynamo/charts/dynamo-crds-0.7.1.tgz && helm install dynamo-crds dynamo-crds-0.7.1.tgz --namespace default",
-					Description: "Install the Dynamo Custom Resource Definitions v0.7.1.",
+					Command:     "helm fetch https://helm.ngc.nvidia.com/nvidia/ai-dynamo/charts/dynamo-crds-0.9.1.tgz && helm install dynamo-crds dynamo-crds-0.9.1.tgz --namespace default",
+					Description: "Install the Dynamo Custom Resource Definitions v0.9.1.",
 				},
 				{
 					Title:       "Install Dynamo Platform",
-					Command:     "helm fetch https://helm.ngc.nvidia.com/nvidia/ai-dynamo/charts/dynamo-platform-0.7.1.tgz && helm install dynamo-platform dynamo-platform-0.7.1.tgz --namespace dynamo-system --create-namespace",
-					Description: "Install the Dynamo platform operator v0.7.1.",
+					Command:     "helm fetch https://helm.ngc.nvidia.com/nvidia/ai-dynamo/charts/dynamo-platform-0.9.1.tgz && helm install dynamo-platform dynamo-platform-0.9.1.tgz --namespace dynamo-system --create-namespace --set \"grove.enabled=true\" --set \"kai-scheduler.enabled=true\"",
+					Description: "Install the Dynamo platform operator v0.9.1 with Grove (multi-node gang scheduler) and KAI Scheduler enabled.",
+				},
+				{
+					Title:       "Fix kube-rbac-proxy image",
+					Command:     "kubectl set image deployment/dynamo-platform-dynamo-operator-controller-manager kube-rbac-proxy=registry.k8s.io/kubebuilder/kube-rbac-proxy:v0.15.0 -n dynamo-system",
+					Description: "Patch the controller manager to use registry.k8s.io instead of the deprecated gcr.io for kube-rbac-proxy.",
 				},
 			},
 		},

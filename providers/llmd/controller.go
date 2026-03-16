@@ -69,11 +69,11 @@ type LLMDProviderReconciler struct {
 }
 
 // NewLLMDProviderReconciler creates a new llm-d provider reconciler
-func NewLLMDProviderReconciler(c client.Client, scheme *runtime.Scheme) *LLMDProviderReconciler {
+func NewLLMDProviderReconciler(c client.Client, scheme *runtime.Scheme, vllmImage string) *LLMDProviderReconciler {
 	return &LLMDProviderReconciler{
 		Client:           c,
 		Scheme:           scheme,
-		Transformer:      NewTransformer(),
+		Transformer:      NewTransformer(vllmImage),
 		StatusTranslator: NewStatusTranslator(),
 	}
 }

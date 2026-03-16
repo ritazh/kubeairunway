@@ -71,14 +71,14 @@ type DynamoProviderReconciler struct {
 }
 
 // NewDynamoProviderReconciler creates a new Dynamo provider reconciler
-func NewDynamoProviderReconciler(client client.Client, scheme *runtime.Scheme, downloadJobImage string) *DynamoProviderReconciler {
+func NewDynamoProviderReconciler(client client.Client, scheme *runtime.Scheme, downloadJobImage, vllmImage, sglangImage, trtllmImage string) *DynamoProviderReconciler {
 	if downloadJobImage == "" {
 		downloadJobImage = storage.DefaultDownloadJobImage
 	}
 	return &DynamoProviderReconciler{
 		Client:           client,
 		Scheme:           scheme,
-		Transformer:      NewTransformer(),
+		Transformer:      NewTransformer(vllmImage, sglangImage, trtllmImage),
 		StatusTranslator: NewStatusTranslator(),
 		DownloadJobImage: downloadJobImage,
 	}
@@ -200,6 +200,10 @@ func (r *DynamoProviderReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	for _, resource := range resources {
 		if err := r.createOrUpdateResource(ctx, resource, &md); err != nil {
 			logger.Error(err, "Failed to create/update resource", "name", resource.GetName(), "kind", resource.GetKind())
+			// Kubernetes optimistic concurrency conflict — requeue immediately, do not fail
+			if errors.IsConflict(err) {
+				return ctrl.Result{Requeue: true}, nil
+			}
 			reason := "CreateFailed"
 			if isResourceConflict(err) {
 				reason = "ResourceConflict"

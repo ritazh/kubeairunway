@@ -39,7 +39,7 @@ func newTestMD(name, namespace string) *kubeairunwayv1alpha1.ModelDeployment {
 }
 
 func TestTransformAggregatedBasic(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 
 	resources, err := tr.Transform(context.Background(), md)
@@ -78,7 +78,7 @@ func TestTransformAggregatedBasic(t *testing.T) {
 }
 
 func TestTransformAggregatedOwnerReference(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 
 	resources, err := tr.Transform(context.Background(), md)
@@ -103,7 +103,7 @@ func TestTransformAggregatedOwnerReference(t *testing.T) {
 }
 
 func TestTransformAggregatedLabels(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 
 	resources, err := tr.Transform(context.Background(), md)
@@ -125,7 +125,7 @@ func TestTransformAggregatedLabels(t *testing.T) {
 }
 
 func TestTransformAggregatedReplicas(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.Scaling = &kubeairunwayv1alpha1.ScalingSpec{Replicas: 3}
 
@@ -142,7 +142,7 @@ func TestTransformAggregatedReplicas(t *testing.T) {
 }
 
 func TestTransformAggregatedDefaultReplicas(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	// No scaling spec
 
@@ -159,7 +159,7 @@ func TestTransformAggregatedDefaultReplicas(t *testing.T) {
 }
 
 func TestTransformAggregatedVLLMArgs(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.Model.ServedName = "my-alias"
 	contextLen := int32(4096)
@@ -186,7 +186,7 @@ func TestTransformAggregatedVLLMArgs(t *testing.T) {
 }
 
 func TestTransformAggregatedTensorParallelism(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.Resources = &kubeairunwayv1alpha1.ResourceSpec{
 		GPU: &kubeairunwayv1alpha1.GPUSpec{Count: 4},
@@ -206,7 +206,7 @@ func TestTransformAggregatedTensorParallelism(t *testing.T) {
 }
 
 func TestTransformAggregatedNoTensorParallelForSingleGPU(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	// 1 GPU — no tensor-parallel-size needed
 
@@ -228,7 +228,7 @@ func TestTransformAggregatedNoTensorParallelForSingleGPU(t *testing.T) {
 }
 
 func TestTransformAggregatedDefaultImage(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 
 	resources, err := tr.Transform(context.Background(), md)
@@ -245,7 +245,7 @@ func TestTransformAggregatedDefaultImage(t *testing.T) {
 }
 
 func TestTransformAggregatedCustomImage(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.Image = "my-custom-vllm:latest"
 
@@ -263,7 +263,7 @@ func TestTransformAggregatedCustomImage(t *testing.T) {
 }
 
 func TestTransformAggregatedGPUResources(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.Resources = &kubeairunwayv1alpha1.ResourceSpec{
 		GPU:    &kubeairunwayv1alpha1.GPUSpec{Count: 2},
@@ -292,7 +292,7 @@ func TestTransformAggregatedGPUResources(t *testing.T) {
 }
 
 func TestTransformAggregatedHFTokenSecret(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.Secrets = &kubeairunwayv1alpha1.SecretsSpec{
 		HuggingFaceToken: "my-hf-secret",
@@ -329,7 +329,7 @@ func TestTransformAggregatedHFTokenSecret(t *testing.T) {
 }
 
 func TestTransformAggregatedEnvVars(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.Env = []corev1.EnvVar{
 		{Name: "FOO", Value: "bar"},
@@ -368,7 +368,7 @@ func TestTransformAggregatedEnvVars(t *testing.T) {
 }
 
 func TestTransformAggregatedNodeSelector(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.NodeSelector = map[string]string{
 		"gpu-type": "a100",
@@ -387,7 +387,7 @@ func TestTransformAggregatedNodeSelector(t *testing.T) {
 }
 
 func TestTransformAggregatedPodTemplateLabels(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.PodTemplate = &kubeairunwayv1alpha1.PodTemplateSpec{
 		Metadata: &kubeairunwayv1alpha1.PodTemplateMetadata{
@@ -422,7 +422,7 @@ func TestTransformAggregatedPodTemplateLabels(t *testing.T) {
 }
 
 func TestTransformAggregatedServicePort(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 
 	resources, err := tr.Transform(context.Background(), md)
@@ -442,7 +442,7 @@ func TestTransformAggregatedServicePort(t *testing.T) {
 }
 
 func TestTransformAggregatedCustomEngineArgs(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.Engine.Args = map[string]string{
 		"gpu-memory-utilization": "0.9",
@@ -464,7 +464,7 @@ func TestTransformAggregatedCustomEngineArgs(t *testing.T) {
 }
 
 func TestTransformAggregatedInvalidEngineArgKey(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.Engine.Args = map[string]string{
 		"-bad-key": "value",
@@ -477,7 +477,7 @@ func TestTransformAggregatedInvalidEngineArgKey(t *testing.T) {
 }
 
 func TestTransformUnsupportedEngine(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.Engine.Type = kubeairunwayv1alpha1.EngineTypeSGLang
 
@@ -488,7 +488,7 @@ func TestTransformUnsupportedEngine(t *testing.T) {
 }
 
 func TestTransformDisaggregatedBasic(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.Serving = &kubeairunwayv1alpha1.ServingSpec{
 		Mode: kubeairunwayv1alpha1.ServingModeDisaggregated,
@@ -533,7 +533,7 @@ func TestTransformDisaggregatedBasic(t *testing.T) {
 }
 
 func TestTransformDisaggregatedKVTransferConfig(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.Serving = &kubeairunwayv1alpha1.ServingSpec{
 		Mode: kubeairunwayv1alpha1.ServingModeDisaggregated,
@@ -565,7 +565,7 @@ func TestTransformDisaggregatedKVTransferConfig(t *testing.T) {
 }
 
 func TestTransformDisaggregatedReplicas(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.Serving = &kubeairunwayv1alpha1.ServingSpec{
 		Mode: kubeairunwayv1alpha1.ServingModeDisaggregated,
@@ -601,7 +601,7 @@ func TestTransformDisaggregatedReplicas(t *testing.T) {
 }
 
 func TestTransformDisaggregatedMissingScaling(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.Serving = &kubeairunwayv1alpha1.ServingSpec{
 		Mode: kubeairunwayv1alpha1.ServingModeDisaggregated,
@@ -615,7 +615,7 @@ func TestTransformDisaggregatedMissingScaling(t *testing.T) {
 }
 
 func TestTransformAggregatedOverride(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.Provider = &kubeairunwayv1alpha1.ProviderSpec{
 		Overrides: &runtime.RawExtension{
@@ -637,7 +637,7 @@ func TestTransformAggregatedOverride(t *testing.T) {
 }
 
 func TestTransformOverrideBlocksMetadata(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.Provider = &kubeairunwayv1alpha1.ProviderSpec{
 		Overrides: &runtime.RawExtension{
@@ -652,7 +652,7 @@ func TestTransformOverrideBlocksMetadata(t *testing.T) {
 }
 
 func TestBuildResourceLimits(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 
 	// nil spec
 	if r := tr.buildResourceLimits(nil); r != nil {
@@ -731,7 +731,7 @@ func assertNoArg(t *testing.T, args []string, flag string) {
 
 // Test that disaggregated mode uses per-component GPU counts for tensor parallelism
 func TestTransformDisaggregatedTensorParallelism(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.Resources = nil // no top-level resources
 	md.Spec.Serving = &kubeairunwayv1alpha1.ServingSpec{
@@ -766,7 +766,7 @@ func TestTransformDisaggregatedTensorParallelism(t *testing.T) {
 
 // Test that user-provided labels cannot overwrite selector-critical keys
 func TestTransformUserLabelsCannotClobberSelectors(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("")
 	md := newTestMD("test-model", "default")
 	md.Spec.PodTemplate = &kubeairunwayv1alpha1.PodTemplateSpec{
 		Metadata: &kubeairunwayv1alpha1.PodTemplateMetadata{

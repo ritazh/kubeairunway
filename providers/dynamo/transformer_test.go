@@ -39,7 +39,7 @@ func newTestMD(name, namespace string) *kubeairunwayv1alpha1.ModelDeployment {
 }
 
 func TestTransformAggregated(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 
 	resources, err := tr.Transform(context.Background(), md)
@@ -116,7 +116,7 @@ func TestTransformAggregated(t *testing.T) {
 }
 
 func TestTransformDisaggregated(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 	md.Spec.Serving = &kubeairunwayv1alpha1.ServingSpec{
 		Mode: kubeairunwayv1alpha1.ServingModeDisaggregated,
@@ -171,7 +171,7 @@ func TestTransformDisaggregated(t *testing.T) {
 }
 
 func TestMapEngineType(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 
 	tests := []struct {
 		input    kubeairunwayv1alpha1.EngineType
@@ -192,7 +192,7 @@ func TestMapEngineType(t *testing.T) {
 }
 
 func TestGetImage(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 
 	// Custom image
 	md := newTestMD("test", "default")
@@ -204,31 +204,31 @@ func TestGetImage(t *testing.T) {
 	// Default vLLM image
 	md.Spec.Image = ""
 	md.Spec.Engine.Type = kubeairunwayv1alpha1.EngineTypeVLLM
-	if img := tr.getImage(md); img != "nvcr.io/nvidia/ai-dynamo/vllm-runtime:0.7.1" {
+	if img := tr.getImage(md); img != "nvcr.io/nvidia/ai-dynamo/vllm-runtime:0.9.1" {
 		t.Errorf("expected default vllm image, got %s", img)
 	}
 
 	// Default SGLang image
 	md.Spec.Engine.Type = kubeairunwayv1alpha1.EngineTypeSGLang
-	if img := tr.getImage(md); img != "nvcr.io/nvidia/ai-dynamo/sglang-runtime:0.7.1" {
+	if img := tr.getImage(md); img != "nvcr.io/nvidia/ai-dynamo/sglang-runtime:0.9.1" {
 		t.Errorf("expected default sglang image, got %s", img)
 	}
 
 	// Default TRT-LLM image
 	md.Spec.Engine.Type = kubeairunwayv1alpha1.EngineTypeTRTLLM
-	if img := tr.getImage(md); img != "nvcr.io/nvidia/ai-dynamo/trtllm-runtime:0.7.1" {
+	if img := tr.getImage(md); img != "nvcr.io/nvidia/ai-dynamo/trtllm-runtime:0.9.1" {
 		t.Errorf("expected default trtllm image, got %s", img)
 	}
 
 	// Unknown engine → fallback
 	md.Spec.Engine.Type = kubeairunwayv1alpha1.EngineType("unknown")
-	if img := tr.getImage(md); img != "nvcr.io/nvidia/ai-dynamo/vllm-runtime:0.7.1" {
+	if img := tr.getImage(md); img != "nvcr.io/nvidia/ai-dynamo/vllm-runtime:0.9.1" {
 		t.Errorf("expected fallback to vllm image, got %s", img)
 	}
 }
 
 func TestBuildEngineArgs(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 
 	// Basic vLLM - args no longer include engine command
 	md := newTestMD("test", "default")
@@ -294,7 +294,7 @@ func TestBuildEngineArgs(t *testing.T) {
 }
 
 func TestEngineCommand(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 
 	tests := []struct {
 		input    kubeairunwayv1alpha1.EngineType
@@ -363,7 +363,7 @@ func sliceEqual(a, b []string) bool {
 }
 
 func TestBuildResourceLimits(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 
 	// Nil spec
 	result := tr.buildResourceLimits(nil)
@@ -409,7 +409,7 @@ func TestBuildResourceLimits(t *testing.T) {
 }
 
 func TestParseOverrides(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 
 	// No overrides
 	md := newTestMD("test", "default")
@@ -462,7 +462,7 @@ func int32Ptr(i int32) *int32 {
 }
 
 func TestBuildFrontendService(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test", "default")
 
 	// Default frontend
@@ -495,7 +495,7 @@ func TestBuildFrontendService(t *testing.T) {
 }
 
 func TestBuildFrontendWithSecret(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test", "default")
 	md.Spec.Secrets = &kubeairunwayv1alpha1.SecretsSpec{
 		HuggingFaceToken: "my-hf-secret",
@@ -508,7 +508,7 @@ func TestBuildFrontendWithSecret(t *testing.T) {
 }
 
 func TestBuildAggregatedWorker(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test", "default")
 	md.Spec.Scaling = &kubeairunwayv1alpha1.ScalingSpec{Replicas: 2}
 
@@ -536,7 +536,7 @@ func TestBuildAggregatedWorker(t *testing.T) {
 }
 
 func TestBuildAggregatedWorkerWithSecret(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test", "default")
 	md.Spec.Secrets = &kubeairunwayv1alpha1.SecretsSpec{HuggingFaceToken: "hf-secret"}
 
@@ -550,7 +550,7 @@ func TestBuildAggregatedWorkerWithSecret(t *testing.T) {
 }
 
 func TestAddSchedulingConfig(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 
 	// With node selector
 	md := newTestMD("test", "default")
@@ -637,7 +637,7 @@ func TestBoolPtr(t *testing.T) {
 }
 
 func TestBuildPrefillWorkerWithSecret(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test", "default")
 	md.Spec.Secrets = &kubeairunwayv1alpha1.SecretsSpec{HuggingFaceToken: "hf-secret"}
 	md.Spec.Scaling = &kubeairunwayv1alpha1.ScalingSpec{
@@ -671,7 +671,7 @@ func TestBuildPrefillWorkerWithSecret(t *testing.T) {
 }
 
 func TestBuildDecodeWorkerWithSecret(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test", "default")
 	md.Spec.Secrets = &kubeairunwayv1alpha1.SecretsSpec{HuggingFaceToken: "hf-secret"}
 	md.Spec.Scaling = &kubeairunwayv1alpha1.ScalingSpec{
@@ -695,7 +695,7 @@ func TestBuildDecodeWorkerWithSecret(t *testing.T) {
 }
 
 func TestBuildEngineArgsWithCustomArgs(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test", "default")
 	md.Spec.Engine.Args = map[string]string{
 		"tensor-parallel-size":  "4",
@@ -712,7 +712,7 @@ func TestBuildEngineArgsWithCustomArgs(t *testing.T) {
 }
 
 func TestBuildEngineArgsDeterministicOrder(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test", "default")
 	md.Spec.Engine.Args = map[string]string{
 		"zebra-param":         "z",
@@ -753,7 +753,7 @@ func TestBuildEngineArgsDeterministicOrder(t *testing.T) {
 }
 
 func TestBuildEngineArgsTrustRemoteCodeSGLang(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test", "default")
 	md.Spec.Engine.Type = kubeairunwayv1alpha1.EngineTypeSGLang
 	md.Spec.Engine.TrustRemoteCode = true
@@ -768,7 +768,7 @@ func TestBuildEngineArgsTrustRemoteCodeSGLang(t *testing.T) {
 }
 
 func TestBuildEngineArgsTRTLLMContextLength(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test", "default")
 	md.Spec.Engine.Type = kubeairunwayv1alpha1.EngineTypeTRTLLM
 	ctxLen := int32(8192)
@@ -785,7 +785,7 @@ func TestBuildEngineArgsTRTLLMContextLength(t *testing.T) {
 }
 
 func TestBuildPrefillWorkerWithCustomGPUType(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test", "default")
 	md.Spec.Scaling = &kubeairunwayv1alpha1.ScalingSpec{
 		Prefill: &kubeairunwayv1alpha1.ComponentScalingSpec{
@@ -810,7 +810,7 @@ func TestBuildPrefillWorkerWithCustomGPUType(t *testing.T) {
 }
 
 func TestApplyOverridesEscapeHatch(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 
 	// Set overrides with both typed fields and arbitrary escape hatch fields
@@ -846,7 +846,7 @@ func TestApplyOverridesEscapeHatch(t *testing.T) {
 }
 
 func TestTransformAggregatedNoGPU(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 	md.Spec.Resources = &kubeairunwayv1alpha1.ResourceSpec{
 		Memory: "16Gi",
@@ -881,7 +881,7 @@ func TestTransformAggregatedNoGPU(t *testing.T) {
 }
 
 func TestTransformAggregatedNilResources(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 	md.Spec.Resources = nil
 
@@ -902,7 +902,7 @@ func TestTransformAggregatedNilResources(t *testing.T) {
 }
 
 func TestTransformAggregatedGPUCount0(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 	md.Spec.Resources = &kubeairunwayv1alpha1.ResourceSpec{
 		GPU: &kubeairunwayv1alpha1.GPUSpec{Count: 0},
@@ -925,7 +925,7 @@ func TestTransformAggregatedGPUCount0(t *testing.T) {
 }
 
 func TestTransformSGLangEngine(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 	md.Spec.Engine.Type = kubeairunwayv1alpha1.EngineTypeSGLang
 
@@ -954,7 +954,7 @@ func TestTransformSGLangEngine(t *testing.T) {
 }
 
 func TestTransformTRTLLMEngine(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 	md.Spec.Engine.Type = kubeairunwayv1alpha1.EngineTypeTRTLLM
 
@@ -971,7 +971,7 @@ func TestTransformTRTLLMEngine(t *testing.T) {
 }
 
 func TestTransformWithCustomScalingReplicas(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 	md.Spec.Scaling = &kubeairunwayv1alpha1.ScalingSpec{
 		Replicas: 5,
@@ -992,7 +992,7 @@ func TestTransformWithCustomScalingReplicas(t *testing.T) {
 }
 
 func TestTransformDisaggregatedGPURequests(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 	md.Spec.Serving = &kubeairunwayv1alpha1.ServingSpec{
 		Mode: kubeairunwayv1alpha1.ServingModeDisaggregated,
@@ -1043,7 +1043,7 @@ func TestTransformDisaggregatedGPURequests(t *testing.T) {
 }
 
 func TestTransformOverrideCanOverwriteServices(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 	md.Spec.Provider = &kubeairunwayv1alpha1.ProviderSpec{
 		Name: "dynamo",
@@ -1081,7 +1081,7 @@ func TestTransformOverrideCanOverwriteServices(t *testing.T) {
 }
 
 func TestTransformWithCustomImage(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 	md.Spec.Image = "my-registry.io/custom-vllm:v1"
 
@@ -1102,7 +1102,7 @@ func TestTransformWithCustomImage(t *testing.T) {
 }
 
 func TestBuildResourceLimitsWithAllFields(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	result := tr.buildResourceLimits(&kubeairunwayv1alpha1.ResourceSpec{
 		GPU:    &kubeairunwayv1alpha1.GPUSpec{Count: 2},
 		Memory: "64Gi",
@@ -1132,7 +1132,7 @@ func TestBuildResourceLimitsWithAllFields(t *testing.T) {
 // --- Storage Tests ---
 
 func TestTransformWithModelCacheStorage(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 	md.Spec.Model.Storage = &kubeairunwayv1alpha1.StorageSpec{
 		Volumes: []kubeairunwayv1alpha1.StorageVolume{
@@ -1209,7 +1209,7 @@ func TestTransformWithModelCacheStorage(t *testing.T) {
 }
 
 func TestTransformWithCompilationCacheStorage(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 	md.Spec.Model.Storage = &kubeairunwayv1alpha1.StorageSpec{
 		Volumes: []kubeairunwayv1alpha1.StorageVolume{
@@ -1242,7 +1242,7 @@ func TestTransformWithCompilationCacheStorage(t *testing.T) {
 }
 
 func TestTransformWithBothCaches(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 	md.Spec.Model.Storage = &kubeairunwayv1alpha1.StorageSpec{
 		Volumes: []kubeairunwayv1alpha1.StorageVolume{
@@ -1310,7 +1310,7 @@ func TestTransformWithBothCaches(t *testing.T) {
 }
 
 func TestTransformNoStorageNoPVCs(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 	// No storage configured
 
@@ -1336,7 +1336,7 @@ func TestTransformNoStorageNoPVCs(t *testing.T) {
 }
 
 func TestTransformHFHomeNotInjectedWhenUserSetsIt(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 	md.Spec.Model.Storage = &kubeairunwayv1alpha1.StorageSpec{
 		Volumes: []kubeairunwayv1alpha1.StorageVolume{
@@ -1376,7 +1376,7 @@ func TestTransformHFHomeNotInjectedWhenUserSetsIt(t *testing.T) {
 }
 
 func TestTransformFrontendHasNoVolumeMounts(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 	md.Spec.Model.Storage = &kubeairunwayv1alpha1.StorageSpec{
 		Volumes: []kubeairunwayv1alpha1.StorageVolume{
@@ -1406,7 +1406,7 @@ func TestTransformFrontendHasNoVolumeMounts(t *testing.T) {
 }
 
 func TestTransformDisaggregatedBothWorkersGetVolumeMounts(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 	md.Spec.Serving = &kubeairunwayv1alpha1.ServingSpec{
 		Mode: kubeairunwayv1alpha1.ServingModeDisaggregated,
@@ -1481,7 +1481,7 @@ func TestTransformDisaggregatedBothWorkersGetVolumeMounts(t *testing.T) {
 }
 
 func TestTransformWithReadOnlyVolume(t *testing.T) {
-	tr := NewTransformer()
+	tr := NewTransformer("", "", "")
 	md := newTestMD("test-model", "default")
 	md.Spec.Model.Storage = &kubeairunwayv1alpha1.StorageSpec{
 		Volumes: []kubeairunwayv1alpha1.StorageVolume{

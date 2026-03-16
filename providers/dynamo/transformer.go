@@ -49,6 +49,11 @@ const (
 	// Sub-component types for disaggregated mode
 	SubComponentTypePrefill = "prefill"
 	SubComponentTypeDecode  = "decode"
+
+	// Default container images for each engine type
+	DefaultVLLMImage   = "nvcr.io/nvidia/ai-dynamo/vllm-runtime:0.9.1"
+	DefaultSGLangImage = "nvcr.io/nvidia/ai-dynamo/sglang-runtime:0.9.1"
+	DefaultTRTLLMImage = "nvcr.io/nvidia/ai-dynamo/trtllm-runtime:0.9.1"
 )
 
 // DynamoOverrides contains Dynamo-specific override configuration
@@ -58,6 +63,11 @@ type DynamoOverrides struct {
 
 	// Frontend contains frontend/router component configuration
 	Frontend *FrontendOverrides `json:"frontend,omitempty"`
+
+	// EnforceEager forces eager execution mode, disabling CUDA graph capture and Triton kernel compilation.
+	// Required on GPUs with architectures not yet supported by the bundled Triton version (e.g. GH200/sm_121a).
+	// Maps to --enforce-eager for vllm and sglang engines.
+	EnforceEager bool `json:"enforceEager,omitempty"`
 }
 
 // FrontendOverrides contains frontend component configuration
@@ -73,11 +83,30 @@ type ResourceOverrides struct {
 }
 
 // Transformer handles transformation of ModelDeployment to DynamoGraphDeployment
-type Transformer struct{}
+type Transformer struct {
+	// images maps engine type to the default container image to use.
+	images map[kubeairunwayv1alpha1.EngineType]string
+}
 
-// NewTransformer creates a new Dynamo transformer
-func NewTransformer() *Transformer {
-	return &Transformer{}
+// NewTransformer creates a new Dynamo transformer. Image parameters default to the
+// built-in values when empty.
+func NewTransformer(vllmImage, sglangImage, trtllmImage string) *Transformer {
+	if vllmImage == "" {
+		vllmImage = defaultImages[kubeairunwayv1alpha1.EngineTypeVLLM]
+	}
+	if sglangImage == "" {
+		sglangImage = defaultImages[kubeairunwayv1alpha1.EngineTypeSGLang]
+	}
+	if trtllmImage == "" {
+		trtllmImage = defaultImages[kubeairunwayv1alpha1.EngineTypeTRTLLM]
+	}
+	return &Transformer{
+		images: map[kubeairunwayv1alpha1.EngineType]string{
+			kubeairunwayv1alpha1.EngineTypeVLLM:   vllmImage,
+			kubeairunwayv1alpha1.EngineTypeSGLang: sglangImage,
+			kubeairunwayv1alpha1.EngineTypeTRTLLM: trtllmImage,
+		},
+	}
 }
 
 // Transform converts a ModelDeployment to a DynamoGraphDeployment
@@ -199,19 +228,19 @@ func (t *Transformer) buildServices(md *kubeairunwayv1alpha1.ModelDeployment, ov
 			return nil, fmt.Errorf("spec.scaling.decode is required for disaggregated serving mode")
 		}
 		// Disaggregated mode: separate prefill and decode workers
-		prefillWorker, err := t.buildPrefillWorker(md, image)
+		prefillWorker, err := t.buildPrefillWorker(md, image, overrides)
 		if err != nil {
 			return nil, fmt.Errorf("failed to build prefill worker: %w", err)
 		}
 		services["VllmPrefillWorker"] = prefillWorker
-		decodeWorker, err := t.buildDecodeWorker(md, image)
+		decodeWorker, err := t.buildDecodeWorker(md, image, overrides)
 		if err != nil {
 			return nil, fmt.Errorf("failed to build decode worker: %w", err)
 		}
 		services["VllmDecodeWorker"] = decodeWorker
 	} else {
 		// Aggregated mode: single worker
-		aggregatedWorker, err := t.buildAggregatedWorker(md, image)
+		aggregatedWorker, err := t.buildAggregatedWorker(md, image, overrides)
 		if err != nil {
 			return nil, fmt.Errorf("failed to build aggregated worker: %w", err)
 		}
@@ -277,7 +306,7 @@ func (t *Transformer) buildFrontendService(md *kubeairunwayv1alpha1.ModelDeploym
 }
 
 // buildAggregatedWorker creates the worker service for aggregated mode
-func (t *Transformer) buildAggregatedWorker(md *kubeairunwayv1alpha1.ModelDeployment, image string) (map[string]interface{}, error) {
+func (t *Transformer) buildAggregatedWorker(md *kubeairunwayv1alpha1.ModelDeployment, image string, overrides *DynamoOverrides) (map[string]interface{}, error) {
 	// Get replicas
 	replicas := int64(1)
 	if md.Spec.Scaling != nil && md.Spec.Scaling.Replicas > 0 {
@@ -288,7 +317,7 @@ func (t *Transformer) buildAggregatedWorker(md *kubeairunwayv1alpha1.ModelDeploy
 	resources := t.buildResourceLimits(md.Spec.Resources)
 
 	// Build engine arguments
-	args, err := t.buildEngineArgs(md)
+	args, err := t.buildEngineArgsWithOverrides(md, overrides)
 	if err != nil {
 		return nil, err
 	}
@@ -325,7 +354,7 @@ func (t *Transformer) buildAggregatedWorker(md *kubeairunwayv1alpha1.ModelDeploy
 }
 
 // buildPrefillWorker creates the prefill worker for disaggregated mode
-func (t *Transformer) buildPrefillWorker(md *kubeairunwayv1alpha1.ModelDeployment, image string) (map[string]interface{}, error) {
+func (t *Transformer) buildPrefillWorker(md *kubeairunwayv1alpha1.ModelDeployment, image string, overrides *DynamoOverrides) (map[string]interface{}, error) {
 	prefillSpec := md.Spec.Scaling.Prefill
 
 	// Build resource limits and requests from component spec
@@ -347,7 +376,7 @@ func (t *Transformer) buildPrefillWorker(md *kubeairunwayv1alpha1.ModelDeploymen
 	}
 
 	// Build engine arguments with prefill flag
-	args, err := t.buildEngineArgs(md)
+	args, err := t.buildEngineArgsWithOverrides(md, overrides)
 	if err != nil {
 		return nil, err
 	}
@@ -386,7 +415,7 @@ func (t *Transformer) buildPrefillWorker(md *kubeairunwayv1alpha1.ModelDeploymen
 }
 
 // buildDecodeWorker creates the decode worker for disaggregated mode
-func (t *Transformer) buildDecodeWorker(md *kubeairunwayv1alpha1.ModelDeployment, image string) (map[string]interface{}, error) {
+func (t *Transformer) buildDecodeWorker(md *kubeairunwayv1alpha1.ModelDeployment, image string, overrides *DynamoOverrides) (map[string]interface{}, error) {
 	decodeSpec := md.Spec.Scaling.Decode
 
 	// Build resource limits and requests from component spec
@@ -408,7 +437,7 @@ func (t *Transformer) buildDecodeWorker(md *kubeairunwayv1alpha1.ModelDeployment
 	}
 
 	// Build engine arguments (decode workers don't need special flags)
-	args, err := t.buildEngineArgs(md)
+	args, err := t.buildEngineArgsWithOverrides(md, overrides)
 	if err != nil {
 		return nil, err
 	}
@@ -478,6 +507,21 @@ func (t *Transformer) buildResourceLimits(spec *kubeairunwayv1alpha1.ResourceSpe
 }
 
 // buildEngineArgs constructs the engine command line arguments (without the engine runner command)
+func (t *Transformer) buildEngineArgsWithOverrides(md *kubeairunwayv1alpha1.ModelDeployment, overrides *DynamoOverrides) ([]string, error) {
+	args, err := t.buildEngineArgs(md)
+	if err != nil {
+		return nil, err
+	}
+	if overrides.EnforceEager {
+		switch md.ResolvedEngineType() {
+		case kubeairunwayv1alpha1.EngineTypeVLLM, kubeairunwayv1alpha1.EngineTypeSGLang:
+			args = append(args, "--enforce-eager")
+		}
+	}
+	return args, nil
+}
+
+// buildEngineArgs constructs the engine command line arguments (without the engine runner command)
 func (t *Transformer) buildEngineArgs(md *kubeairunwayv1alpha1.ModelDeployment) ([]string, error) {
 	var args []string
 
@@ -505,6 +549,14 @@ func (t *Transformer) buildEngineArgs(md *kubeairunwayv1alpha1.ModelDeployment) 
 		switch md.ResolvedEngineType() {
 		case kubeairunwayv1alpha1.EngineTypeVLLM, kubeairunwayv1alpha1.EngineTypeSGLang:
 			args = append(args, "--trust-remote-code")
+		}
+	}
+
+	// Add tensor parallel size (skip if user already set it via engine.args)
+	if md.Spec.Engine.TensorParallelSize != nil && md.Spec.Engine.Args["tensor-parallel-size"] == "" {
+		switch md.ResolvedEngineType() {
+		case kubeairunwayv1alpha1.EngineTypeVLLM, kubeairunwayv1alpha1.EngineTypeSGLang:
+			args = append(args, "--tensor-parallel-size", fmt.Sprintf("%d", *md.Spec.Engine.TensorParallelSize))
 		}
 	}
 
@@ -572,9 +624,9 @@ func toInterfaceSlice(ss []string) []interface{} {
 
 // defaultImages contains the default container images for each engine type
 var defaultImages = map[kubeairunwayv1alpha1.EngineType]string{
-	kubeairunwayv1alpha1.EngineTypeVLLM:   "nvcr.io/nvidia/ai-dynamo/vllm-runtime:0.7.1",
-	kubeairunwayv1alpha1.EngineTypeSGLang: "nvcr.io/nvidia/ai-dynamo/sglang-runtime:0.7.1",
-	kubeairunwayv1alpha1.EngineTypeTRTLLM: "nvcr.io/nvidia/ai-dynamo/trtllm-runtime:0.7.1",
+	kubeairunwayv1alpha1.EngineTypeVLLM:   DefaultVLLMImage,
+	kubeairunwayv1alpha1.EngineTypeSGLang: DefaultSGLangImage,
+	kubeairunwayv1alpha1.EngineTypeTRTLLM: DefaultTRTLLMImage,
 }
 
 // getImage returns the container image to use
@@ -584,13 +636,13 @@ func (t *Transformer) getImage(md *kubeairunwayv1alpha1.ModelDeployment) string 
 		return md.Spec.Image
 	}
 
-	// Use default image for engine type
-	if image, ok := defaultImages[md.ResolvedEngineType()]; ok && image != "" {
+	// Use configured image for engine type
+	if image, ok := t.images[md.ResolvedEngineType()]; ok && image != "" {
 		return image
 	}
 
 	// Fallback to vLLM default
-	return "nvcr.io/nvidia/ai-dynamo/vllm-runtime:0.7.1"
+	return t.images[kubeairunwayv1alpha1.EngineTypeVLLM]
 }
 
 // buildPVCs creates the pvcs list for DynamoGraphDeployment from StorageSpec volumes.

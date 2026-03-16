@@ -236,7 +236,7 @@ func TestReconcileIgnoresOtherProviders(t *testing.T) {
 		WithStatusSubresource(md).
 		Build()
 
-	r := NewLLMDProviderReconciler(c, scheme)
+	r := NewLLMDProviderReconciler(c, scheme, "")
 	result, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Namespace: "default", Name: "test-model"},
 	})
@@ -261,7 +261,7 @@ func TestReconcileIgnoresNoProvider(t *testing.T) {
 		WithStatusSubresource(md).
 		Build()
 
-	r := NewLLMDProviderReconciler(c, scheme)
+	r := NewLLMDProviderReconciler(c, scheme, "")
 	result, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Namespace: "default", Name: "test-model"},
 	})

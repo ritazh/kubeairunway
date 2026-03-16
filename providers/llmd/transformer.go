@@ -30,7 +30,7 @@ import (
 
 const (
 	// DefaultVLLMImage is the default container image for llm-d vLLM deployments
-	DefaultVLLMImage = "vllm/vllm-openai:v0.9.1"
+	DefaultVLLMImage = "nvcr.io/nvidia/vllm:26.02-py3"
 
 	// DefaultVLLMPort is the default serving port for vLLM
 	DefaultVLLMPort = int64(8000)
@@ -46,11 +46,18 @@ const (
 )
 
 // Transformer handles transformation of ModelDeployment to llm-d Deployments and Services
-type Transformer struct{}
+type Transformer struct {
+	// VLLMImage is the container image used for vLLM inference pods.
+	// Defaults to DefaultVLLMImage.
+	VLLMImage string
+}
 
 // NewTransformer creates a new llm-d transformer
-func NewTransformer() *Transformer {
-	return &Transformer{}
+func NewTransformer(vllmImage string) *Transformer {
+	if vllmImage == "" {
+		vllmImage = DefaultVLLMImage
+	}
+	return &Transformer{VLLMImage: vllmImage}
 }
 
 // Transform converts a ModelDeployment to llm-d Deployments and Services.
@@ -366,8 +373,8 @@ func (t *Transformer) buildVLLMArgs(md *kubeairunwayv1alpha1.ModelDeployment, kv
 		args = append(args, "--tensor-parallel-size", fmt.Sprintf("%d", tpCount))
 	}
 
-	// KV transfer config for disaggregated mode
-	if kvTransferConfig != "" {
+	// KV transfer config for disaggregated mode (skipped if user overrides via engine.args)
+	if kvTransferConfig != "" && md.Spec.Engine.Args["kv-transfer-config"] == "" {
 		args = append(args, "--kv-transfer-config", kvTransferConfig)
 	}
 
@@ -504,7 +511,7 @@ func (t *Transformer) getImage(md *kubeairunwayv1alpha1.ModelDeployment) string 
 	if md.Spec.Image != "" {
 		return md.Spec.Image
 	}
-	return DefaultVLLMImage
+	return t.VLLMImage
 }
 
 // componentToResourceSpec converts a ComponentScalingSpec to a ResourceSpec
