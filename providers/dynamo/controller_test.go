@@ -438,8 +438,9 @@ func TestReconcileDeletionWithUpstreamResource(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.RequeueAfter != 5*time.Second {
-		t.Errorf("expected requeue after 5s, got %v", result.RequeueAfter)
+	// Should complete immediately after issuing delete and removing finalizer
+	if result.RequeueAfter != 0 {
+		t.Errorf("expected no requeue, got %v", result.RequeueAfter)
 	}
 }
 
@@ -1083,15 +1084,15 @@ func TestReconcileDeletionWithDGDDelaysCleanup(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(md, dgd, pvc, job).WithStatusSubresource(md).Build()
 	r := NewDynamoProviderReconciler(c, scheme, "")
 
-	// --- First reconciliation: DGD exists, should delete DGD but NOT PVC/Job ---
+	// Single reconciliation: should delete DGD, clean up PVC/Job, and remove finalizer
 	result, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: "test", Namespace: "default"},
 	})
 	if err != nil {
-		t.Fatalf("unexpected error on first reconcile: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.RequeueAfter != 5*time.Second {
-		t.Errorf("expected requeue after 5s on first reconcile, got %v", result.RequeueAfter)
+	if result.RequeueAfter != 0 {
+		t.Errorf("expected no requeue, got %v", result.RequeueAfter)
 	}
 
 	// Verify DGD was deleted
@@ -1099,55 +1100,28 @@ func TestReconcileDeletionWithDGDDelaysCleanup(t *testing.T) {
 	setDGDGVK(dgdCheck)
 	err = c.Get(context.Background(), types.NamespacedName{Name: "test", Namespace: "default"}, dgdCheck)
 	if err == nil {
-		t.Error("expected DGD to be deleted after first reconcile")
-	}
-
-	// Verify PVC still exists (cleanup deferred until DGD is gone)
-	pvcCheck := &corev1.PersistentVolumeClaim{}
-	err = c.Get(context.Background(), types.NamespacedName{Name: "test-model-cache", Namespace: "default"}, pvcCheck)
-	if err != nil {
-		t.Errorf("expected PVC to still exist after first reconcile: %v", err)
-	}
-
-	// Verify Job still exists (cleanup deferred until DGD is gone)
-	jobCheck := &batchv1.Job{}
-	err = c.Get(context.Background(), types.NamespacedName{Name: "test-model-download", Namespace: "default"}, jobCheck)
-	if err != nil {
-		t.Errorf("expected Job to still exist after first reconcile: %v", err)
-	}
-
-	// Verify finalizer still present
-	var mdAfterFirst airunwayv1alpha1.ModelDeployment
-	_ = c.Get(context.Background(), types.NamespacedName{Name: "test", Namespace: "default"}, &mdAfterFirst)
-	if !controllerutil.ContainsFinalizer(&mdAfterFirst, FinalizerName) {
-		t.Error("expected finalizer to still be present after first reconcile")
-	}
-
-	// --- Second reconciliation: DGD is gone, should clean up PVC/Job and remove finalizer ---
-	result, err = r.Reconcile(context.Background(), ctrl.Request{
-		NamespacedName: types.NamespacedName{Name: "test", Namespace: "default"},
-	})
-	if err != nil {
-		t.Fatalf("unexpected error on second reconcile: %v", err)
+		t.Error("expected DGD to be deleted")
 	}
 
 	// Verify PVC was deleted
+	pvcCheck := &corev1.PersistentVolumeClaim{}
 	err = c.Get(context.Background(), types.NamespacedName{Name: "test-model-cache", Namespace: "default"}, pvcCheck)
 	if err == nil {
-		t.Error("expected PVC to be deleted after second reconcile")
+		t.Error("expected PVC to be deleted")
 	}
 
 	// Verify Job was deleted
+	jobCheck := &batchv1.Job{}
 	err = c.Get(context.Background(), types.NamespacedName{Name: "test-model-download", Namespace: "default"}, jobCheck)
 	if err == nil {
-		t.Error("expected Job to be deleted after second reconcile")
+		t.Error("expected Job to be deleted")
 	}
 
 	// Verify finalizer was removed
-	var mdAfterSecond airunwayv1alpha1.ModelDeployment
-	_ = c.Get(context.Background(), types.NamespacedName{Name: "test", Namespace: "default"}, &mdAfterSecond)
-	if controllerutil.ContainsFinalizer(&mdAfterSecond, FinalizerName) {
-		t.Error("expected finalizer to be removed after second reconcile")
+	var mdAfter airunwayv1alpha1.ModelDeployment
+	_ = c.Get(context.Background(), types.NamespacedName{Name: "test", Namespace: "default"}, &mdAfter)
+	if controllerutil.ContainsFinalizer(&mdAfter, FinalizerName) {
+		t.Error("expected finalizer to be removed")
 	}
 }
 

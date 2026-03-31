@@ -3,7 +3,6 @@ package kaito
 import (
 	"context"
 	"testing"
-	"time"
 
 	airunwayv1alpha1 "github.com/kaito-project/airunway/controller/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -504,9 +503,9 @@ func TestReconcileDeletionWithUpstreamResource(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// Should requeue waiting for deletion
-	if result.RequeueAfter != 5*time.Second {
-		t.Errorf("expected requeue after 5s, got %v", result.RequeueAfter)
+	// Should complete immediately after issuing delete and removing finalizer
+	if result.RequeueAfter != 0 {
+		t.Errorf("expected no requeue, got %v", result.RequeueAfter)
 	}
 }
 

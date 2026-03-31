@@ -429,6 +429,17 @@ func (r *DynamoProviderReconciler) handleDeletion(ctx context.Context, md *airun
 			return ctrl.Result{}, r.Update(ctx, md)
 		}
 
+		// If the DGD is already being deleted (has a DeletionTimestamp), it may be
+		// blocked by another controller's finalizer. Proceed to clean up Jobs/PVCs
+		// and remove our finalizer rather than waiting in an infinite loop.
+		if dgd.GetDeletionTimestamp() != nil {
+			logger.Info("DynamoGraphDeployment already deleting, cleaning up Jobs/PVCs", "name", dgdName)
+			_ = storage.DeleteManagedJobs(ctx, r.Client, md)
+			_ = storage.DeleteManagedPVCs(ctx, r.Client, md)
+			controllerutil.RemoveFinalizer(md, FinalizerName)
+			return ctrl.Result{}, r.Update(ctx, md)
+		}
+
 		// Resource exists and is owned by us, delete it
 		logger.Info("Deleting DynamoGraphDeployment", "name", dgdName)
 		if err := r.Delete(ctx, dgd); err != nil && !errors.IsNotFound(err) {
@@ -446,8 +457,13 @@ func (r *DynamoProviderReconciler) handleDeletion(ctx context.Context, md *airun
 			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 
-		// Requeue to wait for DGD and its Pods to be fully terminated
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		// Delete was issued successfully. Clean up Jobs/PVCs and remove our finalizer
+		// now — don't wait for the DGD to fully disappear, as it may have other finalizers.
+		logger.Info("DGD delete issued, cleaning up Jobs/PVCs", "name", dgdName)
+		_ = storage.DeleteManagedJobs(ctx, r.Client, md)
+		_ = storage.DeleteManagedPVCs(ctx, r.Client, md)
+		controllerutil.RemoveFinalizer(md, FinalizerName)
+		return ctrl.Result{}, r.Update(ctx, md)
 	}
 
 	if !errors.IsNotFound(err) {

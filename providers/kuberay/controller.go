@@ -360,6 +360,15 @@ func (r *KubeRayProviderReconciler) handleDeletion(ctx context.Context, md *airu
 			return ctrl.Result{}, r.Update(ctx, md)
 		}
 
+		// If the upstream resource is already being deleted (has a DeletionTimestamp),
+		// it may be blocked by another controller's finalizer. Remove our finalizer
+		// and let the owning controller handle its own cleanup independently.
+		if rs.GetDeletionTimestamp() != nil {
+			logger.Info("RayService already deleting, removing finalizer", "name", md.Name)
+			controllerutil.RemoveFinalizer(md, FinalizerName)
+			return ctrl.Result{}, r.Update(ctx, md)
+		}
+
 		// Resource exists and is owned by us, delete it
 		logger.Info("Deleting RayService", "name", md.Name)
 		if err := r.Delete(ctx, rs); err != nil && !errors.IsNotFound(err) {
@@ -377,8 +386,11 @@ func (r *KubeRayProviderReconciler) handleDeletion(ctx context.Context, md *airu
 			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 
-		// Requeue to wait for deletion
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		// Delete was issued successfully. Remove our finalizer now — don't wait for
+		// the upstream resource to fully disappear, as it may have other finalizers.
+		logger.Info("RayService delete issued, removing finalizer", "name", md.Name)
+		controllerutil.RemoveFinalizer(md, FinalizerName)
+		return ctrl.Result{}, r.Update(ctx, md)
 	}
 
 	if !errors.IsNotFound(err) {

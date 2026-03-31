@@ -358,6 +358,16 @@ func (r *KaitoProviderReconciler) handleDeletion(ctx context.Context, md *airunw
 			return ctrl.Result{}, r.Update(ctx, md)
 		}
 
+		// If the Workspace is already being deleted (has a DeletionTimestamp), it may be
+		// blocked by the KAITO operator's own finalizer (workspace.finalizer.kaito.sh).
+		// We should not wait for it to fully disappear — remove our finalizer and let
+		// the KAITO operator handle its own cleanup independently.
+		if ws.GetDeletionTimestamp() != nil {
+			logger.Info("Workspace already deleting, removing finalizer", "name", md.Name)
+			controllerutil.RemoveFinalizer(md, FinalizerName)
+			return ctrl.Result{}, r.Update(ctx, md)
+		}
+
 		// Resource exists and is owned by us, delete it
 		logger.Info("Deleting Workspace", "name", md.Name)
 		if err := r.Delete(ctx, ws); err != nil && !errors.IsNotFound(err) {
@@ -375,8 +385,12 @@ func (r *KaitoProviderReconciler) handleDeletion(ctx context.Context, md *airunw
 			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 
-		// Requeue to wait for deletion
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		// Delete was issued successfully. Remove our finalizer now — don't wait for
+		// the Workspace to fully disappear, as it may have other finalizers (e.g.
+		// KAITO's workspace.finalizer.kaito.sh) that only the KAITO operator can remove.
+		logger.Info("Workspace delete issued, removing finalizer", "name", md.Name)
+		controllerutil.RemoveFinalizer(md, FinalizerName)
+		return ctrl.Result{}, r.Update(ctx, md)
 	}
 
 	if !errors.IsNotFound(err) {

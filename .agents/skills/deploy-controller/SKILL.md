@@ -44,8 +44,8 @@ Confirm before proceeding: "Ready to build `<image>` for `<platform>` with PUSH=
 |------------|----------------------------------------------|------------------------------------------|
 | controller | `<registry>/airunway-controller:latest`      | `airunway-controller-manager`            |
 | dynamo     | `<registry>/airunway-dynamo-provider:latest` | `airunway-dynamo-provider`               |
-| kaito      | `<registry>/airunway-kaito-provider:latest`  | (no separate deployment — skip rollout)  |
-| kuberay    | `<registry>/airunway-kuberay-provider:latest`| (no separate deployment — skip rollout)  |
+| kaito      | `<registry>/airunway-kaito-provider:latest`  | `airunway-kaito-provider`                |
+| kuberay    | `<registry>/airunway-kuberay-provider:latest`| `airunway-kuberay-provider`              |
 | llmd       | `<registry>/airunway-llmd-provider:latest`   | `airunway-llmd-provider`                 |
 
 ## Step 3 — Build image

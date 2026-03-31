@@ -359,6 +359,15 @@ func (r *LLMDProviderReconciler) handleDeletion(ctx context.Context, md *airunwa
 			return ctrl.Result{}, r.Update(ctx, md)
 		}
 
+		// If the upstream resource is already being deleted (has a DeletionTimestamp),
+		// it may be blocked by another controller's finalizer. Remove our finalizer
+		// and let the owning controller handle its own cleanup independently.
+		if deploy.GetDeletionTimestamp() != nil {
+			logger.Info("Deployment already deleting, removing finalizer", "name", primaryName)
+			controllerutil.RemoveFinalizer(md, FinalizerName)
+			return ctrl.Result{}, r.Update(ctx, md)
+		}
+
 		logger.Info("Deleting primary Deployment", "name", primaryName)
 		if err := r.Delete(ctx, deploy); err != nil && !errors.IsNotFound(err) {
 			logger.Error(err, "Failed to delete Deployment")
@@ -386,8 +395,11 @@ func (r *LLMDProviderReconciler) handleDeletion(ctx context.Context, md *airunwa
 			}
 		}
 
-		// Requeue to wait for deletion
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		// Delete was issued successfully. Remove our finalizer now — don't wait for
+		// the upstream resource to fully disappear, as it may have other finalizers.
+		logger.Info("Deployment delete issued, removing finalizer", "name", primaryName)
+		controllerutil.RemoveFinalizer(md, FinalizerName)
+		return ctrl.Result{}, r.Update(ctx, md)
 	}
 
 	if !errors.IsNotFound(err) {
