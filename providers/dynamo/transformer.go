@@ -55,9 +55,8 @@ const (
 	SubComponentTypePrefill = "prefill"
 	SubComponentTypeDecode  = "decode"
 
-	// vLLM connector modes used by Dynamo.
+	// vLLM connector mode used by Dynamo for disaggregated serving.
 	VLLMConnectorNIXL = "nixl"
-	VLLMConnectorNone = "none"
 )
 
 // DynamoOverrides contains Dynamo-specific override configuration
@@ -531,15 +530,6 @@ func (t *Transformer) buildEngineArgs(md *airunwayv1alpha1.ModelDeployment) ([]s
 		}
 	}
 
-	// Aggregated vLLM deployments do not need a KV transfer connector, so make the
-	// default explicit instead of inheriting Dynamo's runtime default.
-	if md.ResolvedEngineType() == airunwayv1alpha1.EngineTypeVLLM {
-		if _, hasConnectorOverride := md.Spec.Engine.Args["connector"]; !hasConnectorOverride &&
-			t.resolvedServingMode(md) == airunwayv1alpha1.ServingModeAggregated {
-			args = append(args, "--connector", VLLMConnectorNone)
-		}
-	}
-
 	// Add custom engine args with key validation (sorted for deterministic output)
 	keys := make([]string, 0, len(md.Spec.Engine.Args))
 	for k := range md.Spec.Engine.Args {
@@ -547,6 +537,11 @@ func (t *Transformer) buildEngineArgs(md *airunwayv1alpha1.ModelDeployment) ([]s
 	}
 	sort.Strings(keys)
 	for _, key := range keys {
+		// "connector" is consumed internally (e.g. NIXL side-channel host
+		// injection) but must not be forwarded to vLLM which rejects the flag.
+		if key == "connector" && md.ResolvedEngineType() == airunwayv1alpha1.EngineTypeVLLM {
+			continue
+		}
 		if !isValidArgKey(key) {
 			return nil, fmt.Errorf("invalid engine arg key %q: must contain only alphanumeric characters, hyphens, and underscores", key)
 		}
@@ -578,7 +573,7 @@ func (t *Transformer) effectiveVLLMConnector(md *airunwayv1alpha1.ModelDeploymen
 	}
 
 	if t.resolvedServingMode(md) == airunwayv1alpha1.ServingModeAggregated {
-		return VLLMConnectorNone
+		return ""
 	}
 
 	return VLLMConnectorNIXL

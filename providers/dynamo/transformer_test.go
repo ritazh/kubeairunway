@@ -236,7 +236,7 @@ func TestBuildEngineArgs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	expected := []string{"--model", "meta-llama/Llama-2-7b-chat-hf", "--connector", VLLMConnectorNone}
+	expected := []string{"--model", "meta-llama/Llama-2-7b-chat-hf"}
 	if !sliceEqual(args, expected) {
 		t.Errorf("unexpected args: %v, expected %v", args, expected)
 	}
@@ -260,7 +260,7 @@ func TestBuildEngineArgs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	expected = []string{"--model", "meta-llama/Llama-2-7b-chat-hf", "--max-model-len", "4096", "--connector", VLLMConnectorNone}
+	expected = []string{"--model", "meta-llama/Llama-2-7b-chat-hf", "--max-model-len", "4096"}
 	if !sliceEqual(args, expected) {
 		t.Errorf("unexpected args: %v, expected %v", args, expected)
 	}
@@ -751,7 +751,7 @@ func TestBuildEngineArgsWithCustomArgs(t *testing.T) {
 	}
 }
 
-func TestBuildEngineArgsDefaultsAggregatedVLLMConnectorToNone(t *testing.T) {
+func TestBuildEngineArgsAggregatedVLLMOmitsConnector(t *testing.T) {
 	tr := NewTransformer()
 	md := newTestMD("test", "default")
 
@@ -760,10 +760,10 @@ func TestBuildEngineArgsDefaultsAggregatedVLLMConnectorToNone(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	assertArg(t, args, "--connector", VLLMConnectorNone)
+	assertNoArg(t, args, "--connector")
 }
 
-func TestBuildEngineArgsPreservesExplicitConnectorOverride(t *testing.T) {
+func TestBuildEngineArgsStripsConnectorFromVLLMArgs(t *testing.T) {
 	tr := NewTransformer()
 	md := newTestMD("test", "default")
 	md.Spec.Engine.Args = map[string]string{
@@ -775,17 +775,7 @@ func TestBuildEngineArgsPreservesExplicitConnectorOverride(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	assertArg(t, args, "--connector", VLLMConnectorNIXL)
-
-	connectorFlags := 0
-	for _, arg := range args {
-		if arg == "--connector" {
-			connectorFlags++
-		}
-	}
-	if connectorFlags != 1 {
-		t.Fatalf("expected exactly one --connector flag, got %d in %v", connectorFlags, args)
-	}
+	assertNoArg(t, args, "--connector")
 }
 
 func TestBuildEngineArgsDisaggregatedLeavesConnectorToRuntimeDefault(t *testing.T) {
