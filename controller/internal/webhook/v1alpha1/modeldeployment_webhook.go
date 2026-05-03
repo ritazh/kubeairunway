@@ -81,8 +81,10 @@ func (d *ModelDeploymentCustomDefaulter) Default(_ context.Context, obj *airunwa
 		}
 	}
 
-	// Default GPU to 1 in aggregated mode when resources are unspecified
-	if spec.Serving.Mode == airunwayv1alpha1.ServingModeAggregated && spec.Resources == nil {
+	// Default GPU to 1 in aggregated mode when resources are unspecified,
+	// but only for engines that require a GPU. CPU-friendly engines like
+	// llamacpp (e.g. GGUF models) must not be forced onto GPU nodes.
+	if spec.Serving.Mode == airunwayv1alpha1.ServingModeAggregated && spec.Resources == nil && engineRequiresGPU(spec.Engine.Type) {
 		spec.Resources = &airunwayv1alpha1.ResourceSpec{
 			GPU: &airunwayv1alpha1.GPUSpec{
 				Count: 1,
@@ -691,4 +693,20 @@ func (v *ModelDeploymentCustomValidator) validateStorage(obj *airunwayv1alpha1.M
 	}
 
 	return allErrs
+}
+
+// engineRequiresGPU reports whether the given engine type must run on GPU
+// nodes. CPU-friendly engines like llamacpp are excluded so they aren't
+// forced onto GPU machines via defaulted resource requests.
+//
+// An empty engine type returns true to preserve historical behavior:
+// the engine has not yet been resolved (the controller auto-selects later),
+// and most providers default to GPU-backed engines.
+func engineRequiresGPU(engine airunwayv1alpha1.EngineType) bool {
+	switch engine {
+	case airunwayv1alpha1.EngineTypeLlamaCpp:
+		return false
+	default:
+		return true
+	}
 }

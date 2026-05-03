@@ -669,9 +669,11 @@ func TestTransformGPUAddsNvidiaLabel(t *testing.T) {
 	}
 }
 
-func TestTransformNoGPUOmitsNvidiaLabel(t *testing.T) {
+func TestTransformNoGPUAddsCPUPreferredLabel(t *testing.T) {
 	tr := NewTransformer()
 	md := newTestMD("test-model", "default")
+	md.Spec.Engine.Type = airunwayv1alpha1.EngineTypeLlamaCpp
+	md.Spec.Image = "ghcr.io/test/model:latest"
 	md.Spec.Resources = nil
 
 	resources, err := tr.Transform(context.Background(), md)
@@ -680,9 +682,33 @@ func TestTransformNoGPUOmitsNvidiaLabel(t *testing.T) {
 	}
 
 	ws := resources[0]
-	matchLabels, _, _ := unstructured.NestedStringMap(ws.Object, "resource", "labelSelector", "matchLabels")
-	if _, exists := matchLabels["nvidia.com/gpu.present"]; exists {
-		t.Error("did not expect nvidia.com/gpu.present when no GPU requested")
+	podLabels, found, _ := unstructured.NestedStringMap(ws.Object, "inference", "template", "metadata", "labels")
+	if !found {
+		t.Fatal("expected pod template labels")
+	}
+	if podLabels[airunwayv1alpha1.LabelCPUPreferred] != "true" {
+		t.Error("expected airunway.ai/cpu-preferred=true label when no GPU requested")
+	}
+}
+
+func TestTransformGPUOmitsCPUPreferredLabel(t *testing.T) {
+	tr := NewTransformer()
+	md := newTestMD("test-model", "default")
+	md.Spec.Engine.Type = airunwayv1alpha1.EngineTypeLlamaCpp
+	md.Spec.Image = "ghcr.io/test/model:latest"
+	md.Spec.Resources = &airunwayv1alpha1.ResourceSpec{
+		GPU: &airunwayv1alpha1.GPUSpec{Count: 1},
+	}
+
+	resources, err := tr.Transform(context.Background(), md)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	ws := resources[0]
+	podLabels, _, _ := unstructured.NestedStringMap(ws.Object, "inference", "template", "metadata", "labels")
+	if _, exists := podLabels[airunwayv1alpha1.LabelCPUPreferred]; exists {
+		t.Error("should not set cpu-preferred label when GPU is requested")
 	}
 }
 

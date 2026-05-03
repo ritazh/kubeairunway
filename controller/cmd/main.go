@@ -381,6 +381,7 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "ModelDeployment")
 			os.Exit(1)
 		}
+		webhookv1alpha1.SetupCPUPreferredWebhookWithManager(mgr)
 	}
 
 	// +kubebuilder:scaffold:builder

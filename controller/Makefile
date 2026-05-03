@@ -146,6 +146,9 @@ build-installer: manifests generate kustomize ## Generate a consolidated YAML wi
 	cd config/manager && "$(KUSTOMIZE)" edit set image controller=${IMG}
 	"$(KUSTOMIZE)" build config/default > dist/install.yaml
 
+	@git checkout config/manager/kustomization.yaml 2>/dev/null || true
+	@echo "✅ Generated dist/install.yaml"
+
 ##@ Deployment
 
 ifndef ignore-not-found
@@ -166,6 +169,8 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	cd config/manager && "$(KUSTOMIZE)" edit set image controller=${IMG}
 	"$(KUSTOMIZE)" build config/default | "$(KUBECTL)" apply -f -
+	@git checkout config/manager/kustomization.yaml 2>/dev/null || true
+	@echo "✅ AIRunway Controller deployed"
 
 .PHONY: undeploy
 undeploy: kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.

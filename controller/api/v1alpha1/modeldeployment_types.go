@@ -571,4 +571,5 @@ const (
 	LabelModelDeployment = "airunway.ai/model-deployment"
 	LabelManagedBy       = "airunway.ai/managed-by"
 	LabelJobType         = "airunway.ai/job-type"
+	LabelCPUPreferred    = "airunway.ai/cpu-preferred"
 )

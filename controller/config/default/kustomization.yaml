@@ -51,6 +51,9 @@ patches:
 - path: manager_webhook_patch.yaml
   target:
     kind: Deployment
+- path: webhook_objectselector_patch.yaml
+  target:
+    kind: MutatingWebhookConfiguration
 
 # - source: # Uncomment the following block if you have a ConversionWebhook (--conversion)
 #     kind: Certificate

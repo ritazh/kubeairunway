@@ -363,6 +363,23 @@ kind: EndpointPickerConfig
 				Spec: corev1.PodSpec{
 					ServiceAccountName:            eppName,
 					TerminationGracePeriodSeconds: int64Ptr(130),
+					Affinity: &corev1.Affinity{
+						NodeAffinity: &corev1.NodeAffinity{
+							PreferredDuringSchedulingIgnoredDuringExecution: []corev1.PreferredSchedulingTerm{
+								{
+									Weight: 100,
+									Preference: corev1.NodeSelectorTerm{
+										MatchExpressions: []corev1.NodeSelectorRequirement{
+											{
+												Key:      "nvidia.com/gpu.present",
+												Operator: corev1.NodeSelectorOpDoesNotExist,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            "epp",

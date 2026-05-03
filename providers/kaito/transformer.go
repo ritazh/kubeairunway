@@ -44,7 +44,7 @@ const (
 // Transformer handles transformation of ModelDeployment to KAITO Workspace
 type Transformer struct{}
 
-// NewTransformer creates a new KAITO transformer
+// NewTransformer creates a new KAITO transformer.
 func NewTransformer() *Transformer {
 	return &Transformer{}
 }
@@ -212,11 +212,19 @@ func (t *Transformer) buildLlamaCppTemplate(md *airunwayv1alpha1.ModelDeployment
 		container["env"] = envVars
 	}
 
+	// Pod labels: the mutating webhook uses airunwayv1alpha1.LabelCPUPreferred to inject
+	// a soft node anti-affinity for GPU nodes on CPU-only workloads.
+	podLabels := map[string]interface{}{
+		"airunway.ai/model-deployment": md.Name,
+	}
+	hasGPU := md.Spec.Resources != nil && md.Spec.Resources.GPU != nil && md.Spec.Resources.GPU.Count > 0
+	if !hasGPU {
+		podLabels[airunwayv1alpha1.LabelCPUPreferred] = "true"
+	}
+
 	template := map[string]interface{}{
 		"metadata": map[string]interface{}{
-			"labels": map[string]interface{}{
-				"airunway.ai/model-deployment": md.Name,
-			},
+			"labels": podLabels,
 		},
 		"spec": map[string]interface{}{
 			"containers": []interface{}{container},
